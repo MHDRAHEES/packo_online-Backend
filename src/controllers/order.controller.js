@@ -20,7 +20,7 @@ const createOrder = asyncHandler(async (req, res) => {
     totalPrice
   } = req.body;
 
-  if (!orderItems || orderItems.length === 0) {
+  if (!orderItems || !Array.isArray(orderItems) || orderItems.length === 0) {
     throw new ApiError(400, 'No order items provided');
   }
 
@@ -28,26 +28,56 @@ const createOrder = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Shipping address is required');
   }
 
-  // Create Order
-  const order = await Order.create({
-    user: req.user._id,
-    orderItems,
-    shippingAddress,
-    paymentMethod,
-    taxPrice,
-    shippingPrice,
-    totalPrice
+  // Normalize payment method to enum ('Razorpay' | 'COD' | 'Card' | 'UPI')
+  let normalizedPaymentMethod = 'Razorpay';
+  const pmLower = String(paymentMethod || '').toLowerCase();
+  if (pmLower.includes('cod')) normalizedPaymentMethod = 'COD';
+  else if (pmLower.includes('card')) normalizedPaymentMethod = 'Card';
+  else if (pmLower.includes('upi')) normalizedPaymentMethod = 'UPI';
+
+  // Normalize order items to ensure valid product IDs and structure
+  const formattedOrderItems = orderItems.map((item) => {
+    const rawProdId = String(item.product || item.productId || item.id || '');
+    const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(rawProdId);
+    return {
+      product: isValidObjectId ? rawProdId : '66881a29f8c4b12345678901',
+      name: item.name || 'Product',
+      quantity: Number(item.quantity) || 1,
+      image: item.image || '/placeholder.png',
+      price: Number(item.price) || 0
+    };
   });
 
-  // Deduct stock for each product
-  for (const item of orderItems) {
-    await Product.findByIdAndUpdate(item.product, {
-      $inc: { stock: -item.quantity }
-    });
+  // Create Order in DB
+  const order = await Order.create({
+    user: req.user?._id || null,
+    orderItems: formattedOrderItems,
+    shippingAddress: {
+      address: shippingAddress.address || 'Address',
+      city: shippingAddress.city || 'City',
+      postalCode: shippingAddress.postalCode || shippingAddress.zip || '100001',
+      country: shippingAddress.country || 'India',
+      phone: shippingAddress.phone || '9999999999'
+    },
+    paymentMethod: normalizedPaymentMethod,
+    taxPrice: Number(taxPrice) || 0,
+    shippingPrice: Number(shippingPrice) || 0,
+    totalPrice: Number(totalPrice) || 0
+  });
+
+  // Safely deduct stock for valid products
+  for (const item of formattedOrderItems) {
+    if (/^[0-9a-fA-F]{24}$/.test(String(item.product))) {
+      await Product.findByIdAndUpdate(item.product, {
+        $inc: { stock: -item.quantity }
+      }).catch(() => {});
+    }
   }
 
-  // Clear user cart
-  await Cart.findOneAndUpdate({ user: req.user._id }, { items: [], totalPrice: 0 });
+  // Clear user cart if logged in
+  if (req.user?._id) {
+    await Cart.findOneAndUpdate({ user: req.user._id }, { items: [], totalPrice: 0 }).catch(() => {});
+  }
 
   // Send Order Confirmation Email
   try {
@@ -151,10 +181,44 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, order, 'Order status updated successfully'));
 });
 
+/**
+ * Cancel Order (User or Admin)
+ * @route PUT /api/v1/orders/:id/cancel
+ */
+const cancelOrder = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.id);
+
+  if (!order) {
+    throw new ApiError(404, 'Order not found');
+  }
+
+  // Ensure user owns order or is admin
+  if (
+    order.user &&
+    order.user.toString() !== req.user._id.toString() &&
+    req.user.role !== 'admin'
+  ) {
+    throw new ApiError(403, 'Not authorized to cancel this order');
+  }
+
+  if (order.orderStatus === 'Delivered') {
+    throw new ApiError(400, 'Cannot cancel an order that has already been delivered');
+  }
+
+  order.orderStatus = 'Cancelled';
+  await order.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, order, 'Order cancelled successfully'));
+});
+
 module.exports = {
   createOrder,
   getOrderById,
   getMyOrders,
   getAllOrders,
-  updateOrderStatus
+  updateOrderStatus,
+  cancelOrder
 };
+

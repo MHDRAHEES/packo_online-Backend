@@ -132,18 +132,20 @@ const loginUser = asyncHandler(async (req, res) => {
  * @route POST /api/v1/auth/logout
  */
 const logoutUser = asyncHandler(async (req, res) => {
-  await User.findByIdAndUpdate(
-    req.user._id,
-    {
-      $unset: { refreshToken: 1 }
-    },
-    { new: true }
-  );
+  if (req.user?._id) {
+    await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $unset: { refreshToken: 1 }
+      },
+      { new: true }
+    ).catch(() => {});
+  }
 
   return res
     .status(200)
-    .clearCookie('accessToken', cookieOptions)
-    .clearCookie('refreshToken', cookieOptions)
+    .clearCookie('accessToken', { ...cookieOptions, path: '/' })
+    .clearCookie('refreshToken', { ...cookieOptions, path: '/' })
     .json(new ApiResponse(200, {}, 'User logged out successfully'));
 });
 

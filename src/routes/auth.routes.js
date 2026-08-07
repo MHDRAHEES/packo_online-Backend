@@ -8,7 +8,7 @@ const {
   forgotPassword,
   resetPassword
 } = require('../controllers/auth.controller');
-const { verifyJWT } = require('../middlewares/auth.middleware');
+const { verifyJWT, optionalJWT } = require('../middlewares/auth.middleware');
 
 const router = express.Router();
 
@@ -17,8 +17,10 @@ router.post('/login', loginUser);
 router.post('/forgot-password', forgotPassword);
 router.put('/reset-password/:resetToken', resetPassword);
 
+// Logout (Allows optional JWT so logout clears cookies even if token is expired)
+router.post('/logout', optionalJWT, logoutUser);
+
 // Secured Routes
-router.post('/logout', verifyJWT, logoutUser);
 router.get('/me', verifyJWT, getCurrentUser);
 router.put('/update-profile', verifyJWT, updateProfile);
 

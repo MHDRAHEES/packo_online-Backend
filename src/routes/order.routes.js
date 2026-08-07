@@ -4,20 +4,23 @@ const {
   getOrderById,
   getMyOrders,
   getAllOrders,
-  updateOrderStatus
+  updateOrderStatus,
+  cancelOrder
 } = require('../controllers/order.controller');
-const { verifyJWT, authorizeRoles } = require('../middlewares/auth.middleware');
+const { verifyJWT, optionalJWT, authorizeRoles } = require('../middlewares/auth.middleware');
 
 const router = express.Router();
 
-router.use(verifyJWT);
+// Allow guest or authenticated user to create order
+router.post('/', optionalJWT, createOrder);
 
-router.post('/', createOrder);
-router.get('/my-orders', getMyOrders);
-router.get('/:id', getOrderById);
+// Authenticated Routes
+router.get('/my-orders', verifyJWT, getMyOrders);
+router.get('/:id', verifyJWT, getOrderById);
+router.put('/:id/cancel', verifyJWT, cancelOrder);
 
 // Admin Only Routes
-router.get('/', authorizeRoles('admin'), getAllOrders);
-router.put('/:id/status', authorizeRoles('admin'), updateOrderStatus);
+router.get('/', verifyJWT, authorizeRoles('admin'), getAllOrders);
+router.put('/:id/status', verifyJWT, authorizeRoles('admin'), updateOrderStatus);
 
 module.exports = router;

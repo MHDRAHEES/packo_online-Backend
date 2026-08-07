@@ -50,7 +50,36 @@ const authorizeRoles = (...roles) => {
   };
 };
 
+/**
+ * Optional JWT middleware - verifies token if present, but proceeds anyway if missing/invalid
+ */
+const optionalJWT = asyncHandler(async (req, res, next) => {
+  const token =
+    req.cookies?.accessToken ||
+    req.header('Authorization')?.replace('Bearer ', '');
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const decodedToken = jwt.verify(
+      token,
+      process.env.JWT_SECRET || 'fallback_secret'
+    );
+    const user = await User.findById(decodedToken?._id).select('-password');
+    if (user) {
+      req.user = user;
+    }
+  } catch (error) {
+    // Ignore invalid/expired token for optional authentication
+  }
+  next();
+});
+
 module.exports = {
   verifyJWT,
+  optionalJWT,
   authorizeRoles
 };
+
