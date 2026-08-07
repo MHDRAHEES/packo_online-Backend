@@ -5,7 +5,15 @@ const mongoose = require('mongoose');
  */
 const connectDB = async () => {
   try {
-    const connectionInstance = await mongoose.connect(process.env.MONGODB_URI);
+    const mongoURI =
+      process.env.MONGODB_URI ||
+      'mongodb+srv://muhammedrahees159_db_user:rlYX6vkA4U6jKd17@packocluster.smmnsni.mongodb.net/?appName=packoCluster';
+
+    if (!mongoURI) {
+      throw new Error('MONGODB_URI is not defined in environment variables or .env file');
+    }
+
+    const connectionInstance = await mongoose.connect(mongoURI);
     console.log(`\n✅ MongoDB Connected Successfully! Host: ${connectionInstance.connection.host}`);
     console.log(`   Database Name: ${connectionInstance.connection.name}`);
   } catch (error) {
