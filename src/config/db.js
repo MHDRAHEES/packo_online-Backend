@@ -1,23 +1,24 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-/**
- * Establishes connection with MongoDB database using Mongoose.
- */
 const connectDB = async () => {
   try {
-    const mongoURI =
-      process.env.MONGODB_URI ||
-      'mongodb+srv://muhammedrahees159_db_user:rlYX6vkA4U6jKd17@packocluster.smmnsni.mongodb.net/?appName=packoCluster';
+    console.log("🔄 Connecting to MongoDB...");
 
-    if (!mongoURI) {
-      throw new Error('MONGODB_URI is not defined in environment variables or .env file');
+    if (!process.env.MONGODB_URI) {
+      throw new Error("MONGODB_URI environment variable is missing");
     }
 
-    const connectionInstance = await mongoose.connect(mongoURI);
-    console.log(`\n✅ MongoDB Connected Successfully! Host: ${connectionInstance.connection.host}`);
-    console.log(`   Database Name: ${connectionInstance.connection.name}`);
+    await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 10000,
+    });
+
+    console.log("✅ MongoDB Connected Successfully");
   } catch (error) {
-    console.error('❌ MongoDB Connection Error:', error.message);
+    console.error("❌ MongoDB Connection Failed");
+    console.error("Error:", error.message);
+    console.error("Name:", error.name);
+    console.error("Code:", error.code || "N/A");
+
     process.exit(1);
   }
 };
