@@ -1,34 +1,24 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
+/**
+ * Establishes connection with MongoDB database using Mongoose.
+ */
 const connectDB = async () => {
   try {
-    console.log("🔄 MongoDB connection started...");
+    const mongoURI =
+      process.env.MONGODB_URI ||
+      'mongodb+srv://muhammedrahees159_db_user:rlYX6vkA4U6jKd17@packocluster.smmnsni.mongodb.net/?appName=packoCluster';
 
-    if (!process.env.MONGODB_URI) {
-      throw new Error("MONGODB_URI is not defined");
+    if (!mongoURI) {
+      throw new Error('MONGODB_URI is not defined in environment variables or .env file');
     }
 
-    console.log("MongoDB URI found: YES");
-
-    const connection = await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 15000,
-      connectTimeoutMS: 15000,
-    });
-
-    console.log("✅ MongoDB Connected Successfully");
-    console.log("📦 Database:", connection.connection.name);
-    console.log("🌐 MongoDB Host:", connection.connection.host);
-
-    return connection;
+    const connectionInstance = await mongoose.connect(mongoURI);
+    console.log(`\n✅ MongoDB Connected Successfully! Host: ${connectionInstance.connection.host}`);
+    console.log(`   Database Name: ${connectionInstance.connection.name}`);
   } catch (error) {
-    console.error("❌ MongoDB Connection Failed");
-    console.error("Name:", error.name);
-    console.error("Message:", error.message);
-    console.error("Code:", error.code || "N/A");
-
-    // IMPORTANT:
-    // Do NOT use process.exit(1) here.
-    throw error;
+    console.error('❌ MongoDB Connection Error:', error.message);
+    process.exit(1);
   }
 };
 
