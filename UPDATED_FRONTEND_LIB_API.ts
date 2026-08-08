@@ -5,15 +5,69 @@
  * Replaces local mock calls with real HTTP requests while preserving existing component types.
  */
 
-import type {
-  Category,
-  CustomerInfo,
-  Order,
-  PaymentMethod,
-  Product,
-  Testimonial,
-  CartItem,
-} from '@/lib/types'
+export interface Product {
+  id: string
+  name: string
+  slug: string
+  price: number
+  description?: string
+  shortDescription?: string
+  category: string
+  categorySlug: string
+  images: string[]
+  featured?: boolean
+  stock?: number
+  ratings?: number
+}
+
+export interface Category {
+  id: string
+  name: string
+  slug: string
+  description?: string
+  image?: string
+}
+
+export interface Testimonial {
+  id: string
+  name: string
+  role: string
+  content: string
+  rating: number
+}
+
+export interface CustomerInfo {
+  name?: string
+  email?: string
+  phone?: string
+  address?: string
+  city?: string
+  postalCode?: string
+  country?: string
+}
+
+export type PaymentMethod = 'Razorpay' | 'COD' | 'Stripe' | string
+
+export interface CartItem {
+  id?: string
+  productId?: string
+  product?: Product
+  quantity: number
+}
+
+export interface Order {
+  id: string
+  createdAt: string
+  items: CartItem[]
+  customer: CustomerInfo
+  paymentMethod: PaymentMethod
+  subtotal: number
+  shipping: number
+  tax: number
+  discount: number
+  total: number
+}
+
 
 // Default fallback to your Express backend running on port 8000
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1'
