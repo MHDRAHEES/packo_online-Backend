@@ -1,4 +1,5 @@
 const User = require('../models/user.model');
+const Order = require('../models/order.model');
 const ApiError = require('../utils/apiError');
 const ApiResponse = require('../utils/apiResponse');
 const asyncHandler = require('../utils/asyncHandler');
@@ -44,17 +45,18 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'All fields (name, email, password) are required');
   }
 
-  const existedUser = await User.findOne({ email: email.toLowerCase() });
+  const lowerEmail = email.toLowerCase();
+  const existedUser = await User.findOne({ email: lowerEmail });
   if (existedUser) {
     throw new ApiError(409, 'User with this email already exists');
   }
 
   // Automatically grant 'admin' role to admin@gmail.com or when explicitly specified
-  const assignedRole = (email.toLowerCase() === 'admin@gmail.com' || role === 'admin') ? 'admin' : (role || 'user');
+  const assignedRole = (lowerEmail === 'admin@gmail.com' || role === 'admin') ? 'admin' : (role || 'user');
 
   const user = await User.create({
     name,
-    email: email.toLowerCase(),
+    email: lowerEmail,
     password,
     role: assignedRole
   });
@@ -92,7 +94,8 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Email and password are required');
   }
 
-  const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+  const lowerEmail = email.toLowerCase();
+  const user = await User.findOne({ email: lowerEmail }).select('+password');
   if (!user) {
     throw new ApiError(404, 'User does not exist with this email');
   }

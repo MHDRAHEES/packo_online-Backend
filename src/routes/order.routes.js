@@ -14,9 +14,9 @@ const router = express.Router();
 // Allow guest or authenticated user to create order
 router.post('/', optionalJWT, createOrder);
 
-// Authenticated Routes
+// Authenticated or Guest Order Details (optionalJWT enables guest confirmation view & user view)
 router.get('/my-orders', verifyJWT, getMyOrders);
-router.get('/:id', verifyJWT, getOrderById);
+router.get('/:id', optionalJWT, getOrderById);
 router.put('/:id/cancel', verifyJWT, cancelOrder);
 
 // Admin Only Routes
